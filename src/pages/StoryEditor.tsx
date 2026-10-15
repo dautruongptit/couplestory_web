@@ -8,7 +8,7 @@ import { apiClient } from '@/services/api';
 import { toast } from '@/utils/toast';
 import { useTemplates } from '@/hooks/useTemplates';
 import ChangeTemplateModal from '@/components/ChangeTemplateModal';
-import SlugField from '@/components/SlugField';
+import { getStoryDisplayHost } from '@/utils/publicStory';
 import { useAuth } from '@/context/AuthContext';
 import { usePlans } from '@/hooks/usePlans';
 
@@ -25,6 +25,17 @@ interface ServerPhoto {
   thumbnailUrl?: string;
   filenameOriginal?: string;
   sortOrder?: number;
+}
+
+// Công tắc bật/tắt có nhãn chữ "Hiện"/"Ẩn" luôn hiển thị.
+function ToggleSwitch({ checked, onChange, disabled = false }: { checked: boolean; onChange: (value: boolean) => void; disabled?: boolean }) {
+  return (
+    <label className={`relative inline-flex items-center gap-2 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+      <input type="checkbox" className="sr-only peer" checked={checked} disabled={disabled} onChange={e => onChange(e.target.checked)} />
+      <div className="relative w-8 h-4 flex-shrink-0 bg-gray-200 peer-checked:bg-rose-400 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4" />
+      <span className="text-[11px] font-semibold text-gray-500 select-none w-6">{checked ? 'Hiện' : 'Ẩn'}</span>
+    </label>
+  );
 }
 
 type PreviewDevice = 'mobile' | 'desktop';
@@ -44,7 +55,6 @@ export default function StoryEditor() {
   const [, setPhotos] = useState<ServerPhoto[]>([]);
   const [storyType, setStoryType] = useState('LOVE_STORY');
   const [slug, setSlug] = useState('');
-  const [slugOk, setSlugOk] = useState(false);
   const [showChangeTemplate, setShowChangeTemplate] = useState(false);
   const [expandedEventIdx, setExpandedEventIdx] = useState<number | null>(0);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -83,7 +93,7 @@ export default function StoryEditor() {
           },
           hero_block: {
             is_enabled: true,
-            title: storyRes.title || 'Our Story',
+            title: storyRes.title || '',
             partner_a: { name: storyRes.coupleName1 || '', avatar_url: storyRes.avatar1 || 'https://api.dicebear.com/7.x/notionists/svg?seed=A', gender: 'male' },
             partner_b: { name: storyRes.coupleName2 || '', avatar_url: storyRes.avatar2 || 'https://api.dicebear.com/7.x/notionists/svg?seed=B', gender: 'female' },
             banner_images: photosRes.length > 0 ? [photosRes[0].url || photosRes[0]] : ['https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80'],
@@ -97,7 +107,7 @@ export default function StoryEditor() {
           },
           letter_block: {
             is_enabled: !!loveLetter,
-            heading: loveLetter?.title || loveLetter?.heading || 'Gửi người yêu thương,',
+            heading: loveLetter?.title || loveLetter?.heading || '',
             content: loveLetter?.content || '',
             signature: loveLetter?.signature || '',
           },
@@ -133,15 +143,9 @@ export default function StoryEditor() {
 
   const handleSave = async (isPublishing = false): Promise<boolean> => {
     if (!story || !scenarioId) return false;
-    const slugEditable = story.status?.toUpperCase() === 'DRAFT';
-    if (slugEditable && !slugOk) {
-      toast('Link công khai đang bị trùng hoặc chưa hợp lệ', 'error');
-      return false;
-    }
     setIsSaving(true);
     try {
       await apiClient.put(`/stories/${scenarioId}`, {
-        ...(slugEditable ? { subdomain: slug } : {}),
         coupleName1: story.hero_block.partner_a.name,
         coupleName2: story.hero_block.partner_b.name,
         title: story.hero_block.title,
@@ -335,40 +339,33 @@ export default function StoryEditor() {
                 <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-3 shadow-sm">
                   <span className="font-semibold text-gray-700 text-sm flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-rose-400 text-[18px]">info</span>
-                    Giới thiệu chung
+                    Thông tin chung
                   </span>
+                  <div>
+                    <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5 block">Tiêu đề story</label>
+                    <input type="text" value={story.hero_block.title} onChange={e => setStory({ ...story, hero_block: { ...story.hero_block, title: e.target.value } })} className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" placeholder="Ví dụ: Chuyện tình của chúng mình" />
+                  </div>
                   <div>
                     <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5 block">Tên cặp đôi</label>
                     <div className="flex gap-2 items-center">
-                      <input type="text" value={story.hero_block.partner_a.name} onChange={e => setStory({ ...story, hero_block: { ...story.hero_block, partner_a: { ...story.hero_block.partner_a, name: e.target.value } } })} className="flex-1 h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" placeholder="Tên bạn..." />
-                      <span className="text-rose-300 font-bold">&</span>
-                      <input type="text" value={story.hero_block.partner_b.name} onChange={e => setStory({ ...story, hero_block: { ...story.hero_block, partner_b: { ...story.hero_block.partner_b, name: e.target.value } } })} className="flex-1 h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" placeholder="Tên người ấy..." />
+                      <input type="text" value={story.hero_block.partner_a.name} onChange={e => setStory({ ...story, hero_block: { ...story.hero_block, partner_a: { ...story.hero_block.partner_a, name: e.target.value } } })} className="flex-1 min-w-0 h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" placeholder="Ví dụ: Minh" />
+                      <span className="text-rose-300 font-bold flex-shrink-0">&</span>
+                      <input type="text" value={story.hero_block.partner_b.name} onChange={e => setStory({ ...story, hero_block: { ...story.hero_block, partner_b: { ...story.hero_block.partner_b, name: e.target.value } } })} className="flex-1 min-w-0 h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" placeholder="Ví dụ: Lan" />
                     </div>
                   </div>
                   <div>
-                    <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5 block">Tiêu đề story</label>
-                    <input type="text" value={story.hero_block.title} onChange={e => setStory({ ...story, hero_block: { ...story.hero_block, title: e.target.value } })} className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" />
-                  </div>
-                  <div>
                     <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5 block">Đường dẫn công khai</label>
-                    <SlugField
-                      value={slug}
-                      onChange={setSlug}
-                      onValidityChange={setSlugOk}
-                      storyId={scenarioId}
-                      locked={story.status?.toUpperCase() !== 'DRAFT'}
-                    />
+                    <span className="block w-full h-9 px-3 leading-9 rounded-lg bg-gray-100 border border-gray-200 text-sm text-gray-500 truncate select-all">
+                      {getStoryDisplayHost(slug || story.slug)}
+                    </span>
                   </div>
                   <div>
                     <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5 block">Câu trích dẫn</label>
-                    <input type="text" value={story.hero_block.short_quote || ''} onChange={e => setStory({ ...story, hero_block: { ...story.hero_block, short_quote: e.target.value } })} className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" placeholder="Câu trích dẫn lãng mạn..." />
+                    <input type="text" value={story.hero_block.short_quote || ''} onChange={e => setStory({ ...story, hero_block: { ...story.hero_block, short_quote: e.target.value } })} className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" placeholder="Ví dụ: Yêu em là điều đẹp nhất anh từng làm" />
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Bộ đếm ngày yêu</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={story.counter_block.is_enabled} onChange={e => setStory({ ...story, counter_block: { ...story.counter_block, is_enabled: e.target.checked } })} />
-                      <div className="w-8 h-4 bg-gray-200 peer-checked:bg-rose-400 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4" />
-                    </label>
+                    <ToggleSwitch checked={story.counter_block.is_enabled} onChange={v => setStory({ ...story, counter_block: { ...story.counter_block, is_enabled: v } })} />
                   </div>
                   <div className={story.counter_block.is_enabled ? '' : 'opacity-40 pointer-events-none'}>
                     <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5 block">Ngày bắt đầu yêu</label>
@@ -453,13 +450,7 @@ export default function StoryEditor() {
                         {!isExpanded ? (
                           <div className="w-full flex items-center gap-3 px-4 py-3">
                             <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedEventIdx(idx)}>
-                              <span className="material-symbols-outlined text-gray-300 text-[18px] cursor-grab" onMouseDown={e => e.stopPropagation()}>drag_indicator</span>
-                              <div className="w-10 h-10 rounded-full bg-rose-50 flex-shrink-0 overflow-hidden">
-                                {ev.media_url
-                                  ? <img src={ev.media_url} alt="" className="w-full h-full object-cover" />
-                                  : <div className="w-full h-full flex items-center justify-center"><span className="material-symbols-outlined text-rose-200 text-[18px]">photo</span></div>
-                                }
-                              </div>
+                              <span className="material-symbols-outlined text-gray-400 text-[20px]">expand_more</span>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-bold text-gray-800 text-sm truncate">{ev.title || 'Kỷ niệm mới'} {isDone ? '✨' : ''}</span>
@@ -473,21 +464,13 @@ export default function StoryEditor() {
                                 )}
                               </div>
                             </div>
-                            <div className="flex items-center gap-3 flex-shrink-0">
-                              <button
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  const events = [...story.timeline_block.events];
-                                  events[idx] = { ...events[idx], is_visible: ev.is_visible === false };
-                                  setStory({ ...story, timeline_block: { ...story.timeline_block, events } });
-                                }}
-                                className={`flex items-center justify-center ${ev.is_visible !== false ? 'text-rose-500' : 'text-gray-300'}`}
-                              >
-                                <span className="material-symbols-outlined text-[18px]">{ev.is_visible !== false ? 'visibility' : 'visibility_off'}</span>
-                              </button>
-                              <button onClick={() => setExpandedEventIdx(idx)} className="text-gray-400">
-                                <span className="material-symbols-outlined text-[20px]">expand_more</span>
-                              </button>
+                            <div className="flex items-center gap-3 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                              <ToggleSwitch
+                                checked={ev.is_visible !== false}
+                                disabled={ev.is_visible === false && visibleCount >= maxVisible}
+                                onChange={v => { const events = [...story.timeline_block.events]; events[idx] = { ...events[idx], is_visible: v }; setStory({ ...story, timeline_block: { ...story.timeline_block, events } }); }}
+                              />
+                              <span className="material-symbols-outlined text-gray-300 text-[18px] cursor-grab">drag_indicator</span>
                             </div>
                           </div>
                         ) : (
@@ -495,20 +478,18 @@ export default function StoryEditor() {
                             {/* Expanded header */}
                             <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-gray-50">
                               <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-gray-300 text-[18px] cursor-grab">drag_indicator</span>
                                 <span className="px-3 py-1 rounded-full bg-rose-500 text-white text-[11px] font-bold">
                                   Đang chỉnh sửa #{idx + 1}
                                 </span>
                               </div>
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                
-                                <div className="relative">
-                                  <input type="checkbox" className="sr-only peer" checked={ev.is_visible !== false}
-                                    disabled={ev.is_visible === false && visibleCount >= maxVisible}
-                                    onChange={e => { const events = [...story.timeline_block.events]; events[idx] = { ...events[idx], is_visible: e.target.checked }; setStory({ ...story, timeline_block: { ...story.timeline_block, events } }); }} />
-                                  <div className="w-8 h-4 bg-gray-200 peer-checked:bg-rose-400 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4" />
-                                </div>
-                              </label>
+                              <div className="flex items-center gap-3">
+                                <ToggleSwitch
+                                  checked={ev.is_visible !== false}
+                                  disabled={ev.is_visible === false && visibleCount >= maxVisible}
+                                  onChange={v => { const events = [...story.timeline_block.events]; events[idx] = { ...events[idx], is_visible: v }; setStory({ ...story, timeline_block: { ...story.timeline_block, events } }); }}
+                                />
+                                <span className="material-symbols-outlined text-gray-300 text-[18px] cursor-grab">drag_indicator</span>
+                              </div>
                             </div>
 
                             <div className="pt-4">
@@ -530,11 +511,11 @@ export default function StoryEditor() {
                               <div className="px-4 flex flex-col gap-3">
                                 <div>
                                  
-                                  <input type="text" placeholder="Tên kỷ niệm..." maxLength={100} value={ev.title}
+                                  <input type="text" placeholder="Ví dụ: Lần đầu gặp nhau" maxLength={100} value={ev.title}
                                     onChange={e => { const events = [...story.timeline_block.events]; events[idx] = { ...events[idx], title: e.target.value }; setStory({ ...story, timeline_block: { ...story.timeline_block, events } }); }}
                                     className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200 transition-all" />
                                 </div>
-                                <textarea rows={3} maxLength={500} placeholder="Kể lại câu chuyện trong kỷ niệm này..."
+                                <textarea rows={3} maxLength={500} placeholder="Ví dụ: Hôm đó trời mưa, hai đứa trú chung một mái hiên và bắt đầu trò chuyện..."
                                   value={ev.description}
                                   onChange={e => { const events = [...story.timeline_block.events]; events[idx] = { ...events[idx], description: e.target.value }; setStory({ ...story, timeline_block: { ...story.timeline_block, events } }); }}
                                   className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200 resize-none transition-all" />
@@ -545,7 +526,7 @@ export default function StoryEditor() {
                                     
                                     <div className="relative">
                                       <span className="absolute left-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-300 text-[14px]">location_on</span>
-                                      <input type="text" placeholder="Địa điểm..." maxLength={150} value={ev.location || ''}
+                                      <input type="text" placeholder="Ví dụ: Quán cà phê trên phố cổ" maxLength={150} value={ev.location || ''}
                                         onChange={e => { const events = [...story.timeline_block.events]; events[idx] = { ...events[idx], location: e.target.value }; setStory({ ...story, timeline_block: { ...story.timeline_block, events } }); }}
                                         className="w-full h-9 pl-6 pr-2 rounded-lg bg-gray-50 border border-gray-200 text-xs focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200 transition-all" />
                                     </div>
@@ -645,23 +626,20 @@ export default function StoryEditor() {
                       <span className="material-symbols-outlined text-rose-400 text-[18px]">mail</span>
                       Thư tình
                     </span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={story.letter_block.is_enabled} onChange={e => setStory({ ...story, letter_block: { ...story.letter_block, is_enabled: e.target.checked } })} />
-                      <div className="w-8 h-4 bg-gray-200 peer-checked:bg-rose-400 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4" />
-                    </label>
+                    <ToggleSwitch checked={story.letter_block.is_enabled} onChange={v => setStory({ ...story, letter_block: { ...story.letter_block, is_enabled: v } })} />
                   </div>
                   <div className={`flex flex-col gap-3 ${story.letter_block.is_enabled ? '' : 'opacity-40 pointer-events-none'}`}>
                     <div>
                       <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5 block">Tiêu đề thư</label>
-                      <input type="text" value={story.letter_block.heading || ''} onChange={e => setStory({ ...story, letter_block: { ...story.letter_block, heading: e.target.value } })} className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" placeholder="Gửi em, cô gái tháng 9..." />
+                      <input type="text" value={story.letter_block.heading || ''} onChange={e => setStory({ ...story, letter_block: { ...story.letter_block, heading: e.target.value } })} className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" placeholder="Ví dụ: Gửi em, người anh yêu nhất" />
                     </div>
                     <div>
                       <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5 block">Nội dung</label>
-                      <textarea rows={4} value={story.letter_block.content || ''} onChange={e => setStory({ ...story, letter_block: { ...story.letter_block, content: e.target.value } })} className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200 resize-none" placeholder="Viết những lời chân thành nhất của bạn..." />
+                      <textarea rows={4} value={story.letter_block.content || ''} onChange={e => setStory({ ...story, letter_block: { ...story.letter_block, content: e.target.value } })} className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200 resize-none" placeholder="Ví dụ: Cảm ơn em đã luôn ở bên anh, cùng anh đi qua những ngày vui và cả những ngày khó khăn..." />
                     </div>
                     <div>
                       <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5 block">Ký tên</label>
-                      <input type="text" value={story.letter_block.signature || ''} onChange={e => setStory({ ...story, letter_block: { ...story.letter_block, signature: e.target.value } })} className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" placeholder="Yêu em mãi, ..." />
+                      <input type="text" value={story.letter_block.signature || ''} onChange={e => setStory({ ...story, letter_block: { ...story.letter_block, signature: e.target.value } })} className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200" placeholder="Ví dụ: Yêu em mãi, Minh" />
                     </div>
                   </div>
                 </div>
