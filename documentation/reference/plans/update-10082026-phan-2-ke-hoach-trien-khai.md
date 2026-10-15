@@ -18,7 +18,7 @@
 
 Lấy từ `WEB/AGENTS.md` và hiện trạng đã kiểm tra, mọi task bên dưới đều phải tuân thủ:
 
-- Cổng cố định: backend `8087`, frontend `8091`. Cổng bị chiếm thì tìm và dừng tiến trình giữ cổng, không đổi cổng.
+- Cổng cố định: backend `8110`, frontend `8100`. Cổng bị chiếm thì tìm và dừng tiến trình giữ cổng, không đổi cổng.
 - Mọi file mã nguồn là UTF-8 **không BOM**. Sửa file bằng công cụ sửa file hoặc Node, không dùng `Get-Content`/`Set-Content`/`>` của PowerShell.
 - Thay đổi DB chỉ bằng migration Flyway **mới** (bắt đầu từ `V34`). Không bao giờ sửa migration đã áp dụng. Bộ test `FlywayMigrationValidationTest` phải xanh.
 - Màn hình hiển thị thông tin người dùng (hồ sơ, thiết bị, phiên, thông báo, hoạt động) phải lấy **dữ liệu thật** từ API/DB, không để dữ liệu cứng.
@@ -652,7 +652,7 @@ Quy tắc IPN (đúng thứ tự): (1) kiểm tra chữ ký HMAC‑SHA512 trên 
 - [ ] **Test:** người dùng B không `pay` được đơn của A; đơn của gói thấp hơn gói hiện tại bị từ chối.
 - [ ] **Test đơn vị chữ ký:** dùng vector kiểm thử chính thức của VNPay sandbox.
 - [ ] `PendingOrderExpiryJob`: đơn `PENDING` quá 30 phút và `payment_method=VNPAY` → `EXPIRED`.
-- [ ] Cổng thanh toán cho phép IPN từ Internet: dùng `https://api.couplestory.site/api/payments/vnpay/ipn` (tunnel đã có luật `api.couplestory.site → localhost:8087`). `WebSecurityConfig` thêm `permitAll` **chỉ** cho `/api/payments/vnpay/ipn` và `/return`.
+- [ ] Cổng thanh toán cho phép IPN từ Internet: dùng `https://api.couplestory.site/api/payments/vnpay/ipn` (tunnel đã có luật `api.couplestory.site → localhost:8110`). `WebSecurityConfig` thêm `permitAll` **chỉ** cho `/api/payments/vnpay/ipn` và `/return`.
 - [ ] Giữ **chuyển khoản thủ công** làm phương án dự phòng: admin `confirm` đi qua cùng `markPaid`, nên cùng một đường nâng gói.
 - [ ] Cờ `FEATURE_VNPAY` (mặc định tắt); bật trên sandbox trước.
 - [ ] Commit `feat(payment): vnpay checkout, verified idempotent ipn, shared markPaid`
@@ -672,15 +672,15 @@ Quy tắc IPN (đúng thứ tự): (1) kiểm tra chữ ký HMAC‑SHA512 trên 
 ```
 Khách → Cloudflare (DNS wildcard, WAF, HSTS)
           │  Tunnel "ssh-tunnel" (cloudflared chạy bằng root, cấu hình /etc/cloudflared/config.yml)
-          ▼  luật: couplestory.site, *.couplestory.site, main.couplestory.site → http://localhost:8091
-          │        api.couplestory.site → http://localhost:8087
-   nginx (container couplestory-web :8091)  ── /api, /uploads ──►  couplestory-api :8087
+          ▼  luật: couplestory.site, *.couplestory.site, main.couplestory.site → http://localhost:8100
+          │        api.couplestory.site → http://localhost:8110
+   nginx (container couplestory-web :8100)  ── /api, /uploads ──►  couplestory-api :8110
           │                                                              │
           └── SPA (React build)                                          ├── PostgreSQL
                                                                          └── email-service :3000 (shared-network)
 ```
 
-Cấu hình tunnel **đúng** (đã sửa ngày 2026‑10‑03, cần giữ nguyên): `couplestory.site` và `*.couplestory.site` cùng trỏ `localhost:8091`. Mọi thay đổi file này phải qua `cloudflared tunnel ingress validate` rồi mới `systemctl restart cloudflared` (restart làm rớt SSH qua chính tunnel này vài giây).
+Cấu hình tunnel **đúng** (đã sửa ngày 2026‑10‑03, cần giữ nguyên): `couplestory.site` và `*.couplestory.site` cùng trỏ `localhost:8100`. Mọi thay đổi file này phải qua `cloudflared tunnel ingress validate` rồi mới `systemctl restart cloudflared` (restart làm rớt SSH qua chính tunnel này vài giây).
 
 ### 6.2 Biến môi trường mới (đặt trong `.env` trên server, không commit)
 
@@ -704,8 +704,8 @@ Cấu hình tunnel **đúng** (đã sửa ngày 2026‑10‑03, cần giữ nguy
 
 ### 6.4 Mạng và cổng
 
-- Hiện `ss` cho thấy `0.0.0.0:8091` đang lắng nghe trên mọi giao diện. Sửa `docker-compose.yml` thành `"127.0.0.1:8091:8091"` (và tương tự cổng `8087`) để **chỉ cloudflared mới vào được**. Đây là điều kiện để tin `CF-Connecting-IP` (ADR‑8): nếu ai đó vào thẳng cổng 8091 qua LAN, họ giả được header.
-- Tường lửa (UFW): chỉ mở SSH; không mở 8091/8087 ra ngoài.
+- Hiện `ss` cho thấy `0.0.0.0:8100` đang lắng nghe trên mọi giao diện. Sửa `docker-compose.yml` thành `"127.0.0.1:8100:8100"` (và tương tự cổng `8110`) để **chỉ cloudflared mới vào được**. Đây là điều kiện để tin `CF-Connecting-IP` (ADR‑8): nếu ai đó vào thẳng cổng 8100 qua LAN, họ giả được header.
+- Tường lửa (UFW): chỉ mở SSH; không mở 8100/8110 ra ngoài.
 - `email-service` chỉ nghe `127.0.0.1:8092` và `shared-network`, giữ nguyên.
 
 ### 6.5 Quy trình triển khai (mỗi lần)

@@ -21,7 +21,7 @@ Lưu ý khi deploy: backend cần deploy lại để áp sửa lỗi giới hạ
 - **Tiếp theo (đề xuất):** (1) push 4 commit Pha 1 ở `API_V2` nếu người dùng đồng ý; (2) triển khai D3 (tự kéo dài hạn khi nâng gói) và D12 (về FREE khi hết hạn) khi người dùng yêu cầu — cần chốt cách tính trước; (3) Pha 1 còn lại / Pha 2 / Pha 3 theo thứ tự người dùng chọn.
 
 ## Việc dở của người dùng (không đụng)
-Chưa commit, không phải của Claude: `WEB/docker-compose.yml` (đang sửa cổng host thành `90:8091`, **CONFLICT** với D15 = `8091`; chờ người dùng hoàn tác hoặc xác nhận) và `WEB/src/pages/AdminUsers.tsx` (viết lại lớn, nhiều khả năng là màn hình khóa tài khoản). Trong `API_V2`, tính năng khóa tài khoản chưa commit: `AdminUserController`, `UserRepository`, `UserDetailsImpl`, một phần `AuthController`. Xem `git status` trước khi commit; chỉ stage phần của mình.
+Chưa commit, không phải của Claude: `WEB/src/pages/AdminUsers.tsx` (viết lại lớn, nhiều khả năng là màn hình khóa tài khoản). Trong `API_V2`, tính năng khóa tài khoản chưa commit: `AdminUserController`, `UserRepository`, `UserDetailsImpl`, một phần `AuthController`. Xem `git status` trước khi commit; chỉ stage phần của mình.
 
 ## Vấn đề đã biết (chưa xử lý, chưa là task)
 | Vấn đề | Chi tiết ở |
@@ -38,6 +38,7 @@ Chưa commit, không phải của Claude: `WEB/docker-compose.yml` (đang sửa 
 | `RuntimeException` chưa bắt riêng trả 400 kèm thông điệp gốc | `api.md` |
 | `PackageRank` khai báo hai nơi (backend, frontend) | `template-system.md` |
 | CORS mặc định trong `API_V2/docker-compose.yml` thiếu tên miền gốc và wildcard | `deployment.md` |
+| Container web chạy nginx bằng root (`web/Dockerfile` chưa có `USER` thường) | `deployment.md` |
 
 ## Câu hỏi mở / UNKNOWN cần người dùng quyết
 - Cách tính khi tự kéo dài `expires_at` lúc nâng gói (D3).

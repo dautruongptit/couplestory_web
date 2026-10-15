@@ -2,8 +2,8 @@
 
 ## Cổng chạy (port)
 - Chỉ chạy dịch vụ ở cổng đã cấu hình sẵn trong project, không tự chuyển sang cổng khác:
-  - Backend (`API_V2`): `8087` (`application*.yml`, `server.port`)
-  - Frontend (`WEB`, Vite): `8091` (`vite.config.ts`)
+  - Backend (`API_V2`): `8110` (`application*.yml`, `server.port`)
+  - Frontend (`WEB`, Vite): `8100` (`vite.config.ts`)
 - Nếu cổng đang bị chiếm, tìm tiến trình giữ cổng đó và kill nó, rồi chạy lại ở đúng cổng cũ.
   - Windows: `Get-NetTCPConnection -LocalPort <port> -State Listen` lấy `OwningProcess`, rồi `Stop-Process -Id <pid> -Force`.
 - Trước khi chạy, nên kiểm tra cổng có đang được dùng không. Không giả định backend "đang chạy sẵn" là bản mới nhất: sau khi sửa code backend hoặc migration, phải khởi động lại.

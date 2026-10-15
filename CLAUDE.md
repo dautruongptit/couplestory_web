@@ -41,9 +41,9 @@ Báo: đã làm gì; file thay đổi; test đã chạy; còn gì chưa làm; c�
 ## Kho mã và lệnh
 | Phần | Đường dẫn | Repo git | Cổng |
 |---|---|---|---|
-| Frontend (React 19, TS, Vite, Tailwind v4) | `D:\My Project\Couplestory\WEB` | `couplestory-web-main` | 8091 |
-| Backend (Spring Boot 3.2.5, Java 17, PostgreSQL, Flyway) | `D:\My Project\Couplestory\API_V2` | `couplestory-api-main` | 8087 |
-| email-service (Node) | `D:\My Project\email-service` | — | backend chưa gọi |
+| Frontend (React 19, TS, Vite, Tailwind v4) | `D:\MY PRO\applications\CoupleStory\web` | `couplestory-web-main` | 8100 |
+| Backend (Spring Boot 3.2.5, Java 17, PostgreSQL, Flyway) | `D:\MY PRO\applications\CoupleStory\api` (tài liệu vẫn gọi là `API_V2`) | `couplestory-api-main` | 8110 |
+| email-service (Node) | chưa rõ vị trí mới | — | backend chưa gọi |
 
 - Làm việc trực tiếp trên `main`. **Bỏ qua** `API` và `source_code` (dự án cũ; `source_code` có `CLAUDE.md` riêng sẽ gây hiểu sai), `Design`, `MCP`, `DOC`.
 - Backend test: `cd API_V2 && /c/tools/apache-maven-3.9.16/bin/mvn test` (đỏ đã biết: `FlywayMigrationValidationTest`). Dev: `mvn spring-boot:run -Dspring-boot.run.profiles=dev`. Frontend: `npm run dev` · `npm run build` · `npm run lint`. Sau deploy: `SLUG=<story đã publish> bash scripts/smoke-test.sh`.

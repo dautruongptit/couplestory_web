@@ -6,11 +6,11 @@ Sở hữu: môi trường, cấu hình runtime, quy trình deploy. Nguồn th�
 
 ## Topology (CONFIRMED từ file; tunnel theo phiên trước)
 ```
-Khách → Cloudflare → Tunnel "ssh-tunnel" → nginx (container couplestory-web :8091) ─ /api, /uploads ─► couplestory-api :8087 → PostgreSQL
+Khách → Cloudflare → Tunnel "ssh-tunnel" → nginx (container couplestory-web :8100) ─ /api, /uploads ─► couplestory-api :8110 → PostgreSQL
 ```
-- Hai container nằm trên mạng Docker ngoài `shared-network`; nginx proxy tới `couplestory-api:8087`. PostgreSQL (`postgres-main`) và email-service nằm ngoài compose của repo.
-- Frontend: cổng host **8091** (D15; `8091:8091` trong bản đã commit). Bản đang sửa dở chưa commit của người dùng ghi `90:8091` — CONFLICT, chờ hoàn tác. Backend `8087:8087` (`API_V2/docker-compose.yml`).
-- **Tunnel (phiên trước, đã được người dùng sửa 2026-10-03):** `couplestory.site`, `*.couplestory.site` và `main.couplestory.site` phải cùng trỏ `http://localhost:8091`; `api.couplestory.site` trỏ `localhost:8087`. `cloudflared` chạy bằng root, cấu hình `/etc/cloudflared/config.yml`. Không sửa hostname `thongtinchinhhieu.site` (dùng chung với dự án khác).
+- Mạng Docker (D15): web chỉ ở `couplestory-net`; api ở `couplestory-net` và `shared-db-network` (chứa PostgreSQL). Cả hai là mạng ngoài, tạo một lần trên server: `docker network create couplestory-net`. nginx proxy tới `couplestory-api:8110`. PostgreSQL (`postgres-main`) và email-service nằm ngoài compose của repo. **UNKNOWN:** `DB_HOST` có còn phân giải được trên `shared-db-network` không (kiểm trên server trước khi deploy).
+- Cổng (D15, quy tắc `[PP][SS]`, mã dự án 81): frontend `127.0.0.1:8100:8100`, backend `127.0.0.1:8110:8110`. Chỉ cloudflared (cùng máy) truy cập được.
+- **Tunnel (phiên trước, đã được người dùng sửa 2026-10-03):** `couplestory.site`, `*.couplestory.site` và `main.couplestory.site` phải cùng trỏ `http://localhost:8100`; `api.couplestory.site` trỏ `localhost:8110`. **Cổng mới: phải đổi tunnel cùng lúc với deploy**, nếu không site sập. `cloudflared` chạy bằng root, cấu hình `/etc/cloudflared/config.yml`. Không sửa hostname `thongtinchinhhieu.site` (dùng chung với dự án khác).
 - **Theo kế hoạch Pha 2, chưa làm (UNKNOWN trạng thái thật):** gắn cổng vào `127.0.0.1` để chỉ cloudflared truy cập; tường lửa UFW chỉ mở SSH.
 
 ## Biến môi trường (tên, không giá trị)

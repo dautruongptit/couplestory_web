@@ -9,10 +9,12 @@ services:
     container_name: couplestory-web
     restart: unless-stopped
     ports:
-      - "90:8091"
+      - "127.0.0.1:8100:8100"
     networks:
-      - shared-network
+      - couplestory-net
 
 networks:
-  shared-network:
+  # Created once on the server: docker network create couplestory-net
+  # Shared with the API compose project so nginx can reach couplestory-api by name.
+  couplestory-net:
     external: true

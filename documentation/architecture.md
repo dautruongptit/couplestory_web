@@ -6,7 +6,7 @@ Sở hữu: cấu trúc kỹ thuật, xác thực và phiên, kiểm soát an ni
 Monolith Spring Boot (một instance) + PostgreSQL; SPA React phục vụ qua nginx; ảnh lưu đĩa cục bộ. Không dùng Redis, mail, message queue (cấu hình Redis/mail tồn tại nhưng không có code dùng). Quyết định D4.
 
 ```
-Trình duyệt ── nginx (SPA + proxy /api, /uploads) ──► Spring Boot :8087 ──► PostgreSQL
+Trình duyệt ── nginx (SPA + proxy /api, /uploads) ──► Spring Boot :8110 ──► PostgreSQL
                                                             └─► đĩa (UPLOADS_DIR)
 ```
 - `email-service` (Node) là dịch vụ riêng, **backend chưa gọi** (CONFIRMED: không có code client).
@@ -51,7 +51,7 @@ Trình duyệt ── nginx (SPA + proxy /api, /uploads) ──► Spring Boot :
 
 ## 7. Frontend (CONFIRMED)
 - React 19 + TypeScript, Vite 8, Tailwind v4, `react-router-dom` 7 (`createBrowserRouter` trong `src/routes/index.tsx`), `framer-motion`, `lucide-react`, `qrcode.react`.
-- Lớp mạng: `src/services/api.ts` (`apiClient` get/post/put/delete/postFormData, `credentials: 'include'`, đường dẫn gốc `/api`). Dev: Vite proxy `/api`, `/uploads` sang `localhost:8087`.
+- Lớp mạng: `src/services/api.ts` (`apiClient` get/post/put/delete/postFormData, `credentials: 'include'`, đường dẫn gốc `/api`). Dev: Vite proxy `/api`, `/uploads` sang `localhost:8110`.
 - Trạng thái đăng nhập: `src/context/AuthContext.tsx` (gọi `/api/auth/me`). Bảo vệ route: `components/guards/RouteGuards.tsx` (`ProtectedRoute`, `AdminRoute`, `GuestOnlyRoute`).
 - Bố cục: `layouts/MainLayout` (trang công khai, Navbar/Footer), `layouts/DashboardLayout` (khu vực đăng nhập, admin).
 - **Truy cập công khai:** `App.tsx` kiểm `getTenantSlug()` (`utils/publicStory.ts`); nếu đang ở `<slug>.couplestory.site` thì hiển thị thẳng Story, không bọc Router/đăng nhập. Ở dev dùng `/s/<slug>`. Quyết định D7.

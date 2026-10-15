@@ -29,7 +29,7 @@ export function getStoryPublicUrl(slug: string): string {
   if (hostname === ROOT_DOMAIN || hostname.endsWith(`.${ROOT_DOMAIN}`)) {
     return `${protocol}//${slug}.${ROOT_DOMAIN}`;
   }
-  // In dev, VITE_PUBLIC_ORIGIN (e.g. http://192.168.1.10:8091) makes links and QR codes reachable from a phone.
+  // In dev, VITE_PUBLIC_ORIGIN (e.g. http://192.168.1.10:8100) makes links and QR codes reachable from a phone.
   const devOrigin = (import.meta.env.VITE_PUBLIC_ORIGIN as string | undefined)?.replace(/\/+$/, '');
   return `${devOrigin || origin}/s/${slug}`;
 }
